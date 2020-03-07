@@ -82,7 +82,14 @@ func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ResponseWriter: w,
 		Session:        session,
 		callback: func(w *ResponseWriter) {
-			data, err := self.jwt.Sign(w.Session.session, time.Now())
+			self.session_storage.Set(session)
+			session := map[string]interface{}{
+				"sid": w.Session.GetId(),
+			}
+			data, err := self.jwt.Sign(
+				session,
+				time.Now(),
+			)
 			if err == nil {
 				http.SetCookie(w, &http.Cookie{
 					Name:     "session",

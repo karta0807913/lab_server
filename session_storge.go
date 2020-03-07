@@ -6,12 +6,13 @@ type Session interface {
 	GetId() string
 	SetId(string)
 	Del(string)
+	All() map[string]interface{}
 	Clear()
 }
 
 type Storage interface {
 	Get(string) (Session, error)
-	Set(string, interface{}) error
+	Set(Session) error
 	Create(interface{}) (Sessoin error)
 	Del(string) error
 }
@@ -57,6 +58,10 @@ func (self *SessionData) Set(key string, value interface{}) error {
 	self.updated = true
 	self.session[key] = value
 	return nil
+}
+
+func (self *SessionData) All() map[string]interface{} {
+	return self.session
 }
 
 func (self *SessionData) Del(key string) {

@@ -68,37 +68,25 @@ func (self *SQLStorage) Get(session_id string) (Session, error) {
 	}, nil
 }
 
-func (self *SQLStorage) Set(session_id string, body interface{}) error {
-	var data []byte
-	var err error
-	switch session := body.(type) {
-	case *SessionData:
-	case SessionData:
-		data, err = json.Marshal(session.session)
-		break
-	default:
-		data, err = json.Marshal(session)
-		break
-	}
+func (self *SQLStorage) Set(session Session) error {
+	data, err := json.Marshal(session.All())
 	if err != nil {
 		return err
 	}
-	if session_id == "" {
+	if session.GetId() == "" {
 		result, err := self.insert_sql.Exec(data)
 		if err != nil {
 			return err
 		}
 		id, err := result.LastInsertId()
 		sid := fmt.Sprintf("%d", id)
-		switch session := body.(type) {
-		case Session:
-			session.SetId(sid)
-			break
-		default:
-			break
-		}
+		session.SetId(sid)
 	} else {
-		_, err = self.set_sql.Exec(session_id, data, data)
+		_, err = self.set_sql.Exec(
+			session.GetId(),
+			data,
+			data,
+		)
 		return err
 	}
 	return nil
