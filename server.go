@@ -39,7 +39,8 @@ func NewSessionHttpServer(config ServerSettings) (*HttpServer, error) {
 
 type SessionServMux struct {
 	http.ServeMux
-	jwt *JwtHelper
+	jwt             *JwtHelper
+	session_storage Storage
 }
 
 type SessionData struct {
@@ -68,36 +69,36 @@ type HttpServer struct {
 	db    *sql.DB
 }
 
-func (self *SessionServMux) getSession(r *http.ReadRequest) map[stirng]interface{} {
+func (self *SessionServMux) getSession(r *http.Request) map[string]interface{} {
 	signature, err := r.Cookie("session")
 
+	session := make(map[string]interface{})
 	if err != nil {
-		return make(map[string]interface{})
+		return session
 	}
 	claim, err := self.jwt.Verify([]byte(signature.Value))
 	if err != nil {
-		return make(map[string]interface{})
+		return session
+	}
+	id, ok := claim.Set["sid"]
+	if !ok {
+		return session
 	}
 	sid, ok := id.(string)
 	if !ok {
-		return make(map[string]interface{})
+		return session
 	}
-	sid, ok := id.(string)
-	if !ok {
-		return make(map[string]interface{})
-	}
-	var session map[string]interface{}
-	err = self.session_storage.Get(id, session)
+	err = self.session_storage.Get(sid, session)
 	if err != nil {
 		log.Println("fetch session error %s", err.Error())
-		return make(map[string]interface{})
+		return session
 	}
 	return session
 }
 
 func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	sessoin := self.getSession(r)
+	session := self.getSession(r)
 
 	wrap := WrapResponseWriter(
 		w, self.jwt,
