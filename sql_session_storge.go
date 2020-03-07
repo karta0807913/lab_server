@@ -20,7 +20,7 @@ type SQLStorage struct {
 }
 
 func NewSQLStorage(db *sql.DB, config SQLStorageConfig) (*SQLStorage, error) {
-	get_sql, err := db.Prepare(fmt.Sprintf("select data from `%s` where id=? limit 1", config.TableName))
+	get_sql, err := db.Prepare(fmt.Sprintf("select id, data from `%s` where id=? limit 1", config.TableName))
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func NewSQLStorage(db *sql.DB, config SQLStorageConfig) (*SQLStorage, error) {
 	if err != nil {
 		return nil, err
 	}
-	del_sql, err := db.Prepare(fmt.Sprintf("delete from %s where id = ?", config.TableName))
+	del_sql, err := db.Prepare(fmt.Sprintf("delete from `%s` where id = ?", config.TableName))
 	if err != nil {
 		return nil, err
 	}
@@ -54,17 +54,20 @@ func (self *SQLStorage) Get(session_id string) (Session, error) {
 	if !result.Next() {
 		return nil, &StorageNotFoundError{}
 	}
-	columns, err := result.Columns()
+	var sid string
+	var data []byte
+	err = result.Scan(&sid, &data)
 	if err != nil {
 		return nil, err
 	}
 	body := make(map[string]interface{})
-	err = json.Unmarshal([]byte(columns[0]), body)
+	err = json.Unmarshal(data, &body)
 	if err != nil {
 		return nil, err
 	}
 	return &SessionData{
 		session: body,
+		id:      sid,
 	}, nil
 }
 

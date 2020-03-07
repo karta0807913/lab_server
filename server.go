@@ -55,7 +55,8 @@ func (self *SessionServMux) getSession(r *http.Request) *SessionData {
 	if err != nil {
 		return NewSessionData()
 	}
-	claim, err := self.jwt.Verify([]byte(signature.Value))
+	data := []byte(signature.Value)
+	claim, err := self.jwt.Verify(data)
 	if err != nil {
 		return NewSessionData()
 	}
@@ -69,7 +70,7 @@ func (self *SessionServMux) getSession(r *http.Request) *SessionData {
 	}
 	session, err := self.session_storage.Get(sid)
 	if err != nil {
-		log.Println("fetch session error %s", err.Error())
+		log.Printf("fetch session error, reason: %s\n", err.Error())
 		return NewSessionData()
 	}
 	return session.(*SessionData)
@@ -88,14 +89,14 @@ func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			data, err := self.jwt.Sign(
 				session,
-				time.Now(),
+				time.Now().AddDate(0, 0, 1),
 			)
 			if err == nil {
 				http.SetCookie(w, &http.Cookie{
 					Name:     "session",
 					Value:    string(data),
 					HttpOnly: true,
-					Secure:   true,
+					Secure:   false,
 				})
 			} else {
 				log.SetFlags(log.LstdFlags | log.Lshortfile)

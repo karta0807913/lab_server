@@ -22,6 +22,10 @@ type JwtSignatureTimeOut struct {
 	error
 }
 
+func (self JwtSignatureTimeOut) Error() string {
+	return "signature not vailed"
+}
+
 func NewJwtHelper(public_key_path string, private_key_path string) (*JwtHelper, error) {
 	public_key_file, err := os.OpenFile(public_key_path, os.O_RDONLY, 0644)
 	if err != nil {
