@@ -71,5 +71,6 @@ func main() {
 
 	route(server)
 
+	log.Printf("server listening on %s", Config.serverAddr)
 	log.Fatal(server.ListenAndServe())
 }

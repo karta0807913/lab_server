@@ -3,7 +3,7 @@ package main
 import "net/http"
 
 func route(server *HttpServer) {
-	router := server.Handler.(*http.ServeMux)
+	router := server.Handler.(*SessionServMux)
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello"))
 	})

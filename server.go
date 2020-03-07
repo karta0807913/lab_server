@@ -23,22 +23,22 @@ func NewSessionHttpServer(config ServerSettings) (*HttpServer, error) {
 		return nil, err
 	}
 	handler := &SessionServMux{
-		jwt: jwt,
+		jwt:             jwt,
+		session_storage: config.Storage,
 	}
 	server := &HttpServer{
 		Server: &http.Server{
 			Handler: handler,
 			Addr:    config.ServerAddress,
 		},
-		drive:           config.Drive,
-		db:              config.Db,
-		session_storage: config.Storage,
+		drive: config.Drive,
+		db:    config.Db,
 	}
 	return server, nil
 }
 
 type SessionServMux struct {
-	*http.ServeMux
+	http.ServeMux
 	jwt *JwtHelper
 }
 
@@ -64,29 +64,41 @@ func (self *SessionData) Del(key string) {
 
 type HttpServer struct {
 	*http.Server
-	drive           *GoogleDrive
-	db              *sql.DB
-	session_storage Storage
+	drive *GoogleDrive
+	db    *sql.DB
+}
+
+func (self *SessionServMux) getSession(r *http.ReadRequest) map[stirng]interface{} {
+	signature, err := r.Cookie("session")
+
+	if err != nil {
+		return make(map[string]interface{})
+	}
+	claim, err := self.jwt.Verify([]byte(signature.Value))
+	if err != nil {
+		return make(map[string]interface{})
+	}
+	sid, ok := id.(string)
+	if !ok {
+		return make(map[string]interface{})
+	}
+	sid, ok := id.(string)
+	if !ok {
+		return make(map[string]interface{})
+	}
+	var session map[string]interface{}
+	err = self.session_storage.Get(id, session)
+	if err != nil {
+		log.Println("fetch session error %s", err.Error())
+		return make(map[string]interface{})
+	}
+	return session
 }
 
 func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	signature, err := r.Cookie("session")
-	var session map[string]interface{}
-	if err != nil {
-		session = make(map[string]interface{})
-	} else {
-		claim, err := self.jwt.Verify([]byte(signature.Value))
-		if err != nil {
-			session = make(map[string]interface{})
-		} else {
-			session = claim.Set
-		}
-	}
 
-	if err != nil {
-		HttpErrorHandle(err, w, r)
-		return
-	}
+	sessoin := self.getSession(r)
+
 	wrap := WrapResponseWriter(
 		w, self.jwt,
 		&SessionData{
@@ -99,6 +111,9 @@ func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !wrap.done {
 		w.WriteHeader(404)
 		w.Write([]byte("404 not found"))
+	}
+	if wrap.statusCode == 0 {
+		wrap.statusCode = 200
 	}
 	log.Printf("%s %s %d\n", r.Host, r.URL.Path, wrap.statusCode)
 }
@@ -133,7 +148,12 @@ func (self *ResponseWriter) WriteHeader(code int) {
 	if self.Session.updated && !self.done {
 		data, err := self.jwt.Sign(self.Session.session, time.Now())
 		if err == nil {
-			self.Header().Add("Set-Cookie", string(data))
+			http.SetCookie(self, &http.Cookie{
+				Name:     "session",
+				Value:    string(data),
+				Secure:   true,
+				HttpOnly: true,
+			})
 		} else {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.Println(err)

@@ -28,7 +28,7 @@ func NewJwtHelper(public_key_path string, private_key_path string) (*JwtHelper, 
 		return nil, err
 	}
 
-	private_key_file, err := os.OpenFile(public_key_path, os.O_RDONLY, 0644)
+	private_key_file, err := os.OpenFile(private_key_path, os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
@@ -37,14 +37,14 @@ func NewJwtHelper(public_key_path string, private_key_path string) (*JwtHelper, 
 	if err != nil {
 		return nil, err
 	}
-	public_key_block, _ := pem.Decode(public_key_byte)
-	if public_key_block == nil {
-		return nil, errors.New("can't decode public key")
-	}
-
 	private_key_byte, err := ioutil.ReadAll(private_key_file)
 	if err != nil {
 		return nil, err
+	}
+
+	public_key_block, _ := pem.Decode(public_key_byte)
+	if public_key_block == nil {
+		return nil, errors.New("can't decode public key")
 	}
 	private_key_block, _ := pem.Decode(private_key_byte)
 	if private_key_block == nil {
@@ -55,11 +55,11 @@ func NewJwtHelper(public_key_path string, private_key_path string) (*JwtHelper, 
 	if err != nil {
 		return nil, err
 	}
-
 	private_key, err := x509.ParsePKCS8PrivateKey(private_key_block.Bytes)
 	if err != nil {
 		return nil, err
 	}
+
 	return &JwtHelper{
 		public_key:  public_key,
 		private_key: private_key.(*rsa.PrivateKey),
