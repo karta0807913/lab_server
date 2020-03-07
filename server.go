@@ -43,70 +43,59 @@ type SessionServMux struct {
 	session_storage Storage
 }
 
-type SessionData struct {
-	session map[string]interface{}
-	updated bool
-}
-
-func (self *SessionData) Get(key string) interface{} {
-	return self.session[key]
-}
-
-func (self *SessionData) Set(key string, value interface{}) {
-	self.updated = true
-	self.session[key] = value
-}
-
-func (self *SessionData) Del(key string) {
-	_, ok := self.session[key]
-	self.updated = self.updated || ok
-	delete(self.session, key)
-}
-
 type HttpServer struct {
 	*http.Server
 	drive *GoogleDrive
 	db    *sql.DB
 }
 
-func (self *SessionServMux) getSession(r *http.Request) map[string]interface{} {
+func (self *SessionServMux) getSession(r *http.Request) *SessionData {
 	signature, err := r.Cookie("session")
 
-	session := make(map[string]interface{})
 	if err != nil {
-		return session
+		return NewSessionData()
 	}
 	claim, err := self.jwt.Verify([]byte(signature.Value))
 	if err != nil {
-		return session
+		return NewSessionData()
 	}
 	id, ok := claim.Set["sid"]
 	if !ok {
-		return session
+		return NewSessionData()
 	}
 	sid, ok := id.(string)
 	if !ok {
-		return session
+		return NewSessionData()
 	}
-	err = self.session_storage.Get(sid, session)
+	session, err := self.session_storage.Get(sid)
 	if err != nil {
 		log.Println("fetch session error %s", err.Error())
-		return session
+		return NewSessionData()
 	}
-	return session
+	return session.(*SessionData)
 }
 
 func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	session := self.getSession(r)
-
-	wrap := WrapResponseWriter(
-		w, self.jwt,
-		&SessionData{
-			session: session,
-			updated: false,
+	wrap := &ResponseWriter{
+		ResponseWriter: w,
+		Session:        session,
+		callback: func(w *ResponseWriter) {
+			data, err := self.jwt.Sign(w.Session.session, time.Now())
+			if err == nil {
+				http.SetCookie(w, &http.Cookie{
+					Name:     "session",
+					Value:    string(data),
+					HttpOnly: true,
+					Secure:   true,
+				})
+			} else {
+				log.SetFlags(log.LstdFlags | log.Lshortfile)
+				log.Println(err)
+			}
 		},
-	)
+	}
 
 	self.ServeMux.ServeHTTP(wrap, r)
 	if !wrap.done {
@@ -124,7 +113,7 @@ type ResponseWriter struct {
 	statusCode int
 	done       bool
 	Session    *SessionData
-	jwt        *JwtHelper
+	callback   func(*ResponseWriter)
 }
 
 func (self *ResponseWriter) Header() http.Header {
@@ -133,13 +122,7 @@ func (self *ResponseWriter) Header() http.Header {
 
 func (self *ResponseWriter) Write(b []byte) (int, error) {
 	if self.Session.updated && !self.done {
-		data, err := self.jwt.Sign(self.Session.session, time.Now())
-		if err == nil {
-			self.Header().Add("Set-Cookie", string(data))
-		} else {
-			log.SetFlags(log.LstdFlags | log.Lshortfile)
-			log.Println(err)
-		}
+		self.callback(self)
 	}
 	self.done = true
 	return self.ResponseWriter.Write(b)
@@ -147,28 +130,9 @@ func (self *ResponseWriter) Write(b []byte) (int, error) {
 
 func (self *ResponseWriter) WriteHeader(code int) {
 	if self.Session.updated && !self.done {
-		data, err := self.jwt.Sign(self.Session.session, time.Now())
-		if err == nil {
-			http.SetCookie(self, &http.Cookie{
-				Name:     "session",
-				Value:    string(data),
-				Secure:   true,
-				HttpOnly: true,
-			})
-		} else {
-			log.SetFlags(log.LstdFlags | log.Lshortfile)
-			log.Println(err)
-		}
+		self.callback(self)
 	}
 	self.done = true
 	self.statusCode = code
 	self.ResponseWriter.WriteHeader(code)
-}
-
-func WrapResponseWriter(origin http.ResponseWriter, jwt *JwtHelper, session *SessionData) *ResponseWriter {
-	return &ResponseWriter{
-		ResponseWriter: origin,
-		Session:        session,
-		jwt:            jwt,
-	}
 }
