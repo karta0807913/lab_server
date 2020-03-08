@@ -22,17 +22,11 @@ func route(server *HttpServer) {
 	})
 
 	file_route := LoginChecker{
-		Handler: &SessionServMux{
-			jwt:             router.jwt,
-			session_storage: router.session_storage,
-		},
+		Handler: http.StripPrefix("/file", http.NewServeMux()),
 	}
-	router.Handle("/file", file_route)
-	FileRouteRegistHandler(server, &file_route.Handler.(*SessionServMux).ServeMux)
+	router.Handle("/file/", file_route)
+	FileRouteRegistHandler(server, file_route.Handler.(*http.ServeMux))
 
-	api_route := &SessionServMux{
-		jwt:             router.jwt,
-		session_storage: router.session_storage,
-	}
+	api_route := http.NewServeMux()
 	ApiRouteRegistHandler(server, api_route)
 }

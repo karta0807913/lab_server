@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func ApiRouteRegistHandler(server *HttpServer, route *SessionServMux) error {
+func ApiRouteRegistHandler(server *HttpServer, route *http.ServeMux) error {
 	json_middle := MiddlewareCheckBuilder(new(JsonBodyParser), new(BodyCheck))
 
 	login_sql, err := server.db.Prepare("select mem_id from mem_data where account=? and password=? limit 1")
