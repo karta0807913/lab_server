@@ -108,8 +108,8 @@ func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	self.ServeMux.ServeHTTP(wrap, r)
 	if !wrap.done {
-		w.WriteHeader(404)
-		w.Write([]byte("404 not found"))
+		wrap.WriteHeader(404)
+		wrap.Write([]byte("404 not found"))
 	}
 	if wrap.statusCode == 0 {
 		wrap.statusCode = 200

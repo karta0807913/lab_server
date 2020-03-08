@@ -28,9 +28,9 @@ func HttpErrorHandle(err error, w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("server error"))
 		log.Println(err.Error())
 		break
-	case PleasLoginError:
-	case AccountOrPasswordError:
-	case UserInputError:
+	case *PleasLoginError,
+		*AccountOrPasswordError,
+		*UserInputError:
 		w.WriteHeader(403)
 		w.Write([]byte(err.Error()))
 		break
