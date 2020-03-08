@@ -88,9 +88,10 @@ func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			session := map[string]interface{}{
 				"sid": w.Session.GetId(),
 			}
+			expire_date := time.Now().AddDate(0, 0, 1)
 			data, err := self.jwt.Sign(
 				session,
-				time.Now().AddDate(0, 0, 1),
+				expire_date,
 			)
 			if err == nil {
 				http.SetCookie(w, &http.Cookie{
@@ -98,6 +99,8 @@ func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					Value:    string(data),
 					HttpOnly: true,
 					Secure:   false,
+					Path:     "/",
+					Expires:  expire_date,
 				})
 			} else {
 				log.SetFlags(log.LstdFlags | log.Lshortfile)
