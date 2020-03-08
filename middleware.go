@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"reflect"
 )
@@ -86,7 +85,7 @@ func (self BodyCheck) Handle(req *http.Request, body interface{}) error {
 	return nil
 }
 
-func MiddlewareCheckBuilder(middlewareList ...Middleware) func(req *http.Request, body interface{}) error {
+func MiddlewareCheckBuilder(middlewareList ...MiddlewareInterface) func(req *http.Request, body interface{}) error {
 	return func(req *http.Request, body interface{}) error {
 		for _, middleware := range middlewareList {
 			if err := middleware.Handle(req, body); err != nil {
@@ -95,18 +94,4 @@ func MiddlewareCheckBuilder(middlewareList ...Middleware) func(req *http.Request
 		}
 		return nil
 	}
-}
-
-func HttpErrorHandle(err error, w http.ResponseWriter, r *http.Request) {
-	switch err := err.(type) {
-	default:
-		w.WriteHeader(500)
-		w.Write([]byte("server error"))
-		break
-	case UserInputError:
-		w.WriteHeader(403)
-		w.Write([]byte(err.Error()))
-		break
-	}
-	log.Println(err.Error())
 }

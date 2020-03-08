@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -118,9 +119,9 @@ func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type ResponseWriter struct {
 	http.ResponseWriter
+	Session    *SessionData
 	statusCode int
 	done       bool
-	Session    *SessionData
 	callback   func(*ResponseWriter)
 }
 
@@ -143,4 +144,12 @@ func (self *ResponseWriter) WriteHeader(code int) {
 	self.done = true
 	self.statusCode = code
 	self.ResponseWriter.WriteHeader(code)
+}
+
+func (self *ResponseWriter) WriteJson(body interface{}) (int, error) {
+	data, err := json.Marshal(body)
+	if err != nil {
+		return 0, err
+	}
+	return self.Write(data)
 }
