@@ -21,6 +21,23 @@ func (PleasLoginError) Error() string {
 	return "Please Login"
 }
 
+type IsNotJsonError struct {
+	error
+}
+
+func (IsNotJsonError) Error() string {
+	return "not a json body"
+}
+
+type UserInputError struct {
+	error
+	err_msg string
+}
+
+func (self UserInputError) Error() string {
+	return self.err_msg
+}
+
 func HttpErrorHandle(err error, w http.ResponseWriter, r *http.Request) {
 	switch err := err.(type) {
 	default:
@@ -30,6 +47,7 @@ func HttpErrorHandle(err error, w http.ResponseWriter, r *http.Request) {
 		break
 	case *PleasLoginError,
 		*AccountOrPasswordError,
+		*IsNotJsonError,
 		*UserInputError:
 		w.WriteHeader(403)
 		w.Write([]byte(err.Error()))

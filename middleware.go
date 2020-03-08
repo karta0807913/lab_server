@@ -8,20 +8,6 @@ import (
 	"reflect"
 )
 
-type serverError struct {
-	error
-	err_msg string
-}
-
-func (err serverError) Error() string {
-	return err.err_msg
-}
-
-type UserInputError struct {
-	serverError
-	err_msg string
-}
-
 type MiddlewareInterface interface {
 	Handle(req *http.Request, body interface{}) error
 }
@@ -64,21 +50,19 @@ func (self JsonBodyParser) Handle(req *http.Request, body interface{}) error {
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(body); err != nil {
-		return err
+		return new(IsNotJsonError)
 	}
 	return nil
 }
 
 func (self BodyCheck) Handle(req *http.Request, body interface{}) error {
-	iter := reflect.ValueOf(body).MapRange()
-	for iter.Next() {
-		val, ok := iter.Value().Interface().(*interface{})
-		if !ok {
-			continue
-		}
-		if val == nil {
-			return UserInputError{
-				err_msg: fmt.Sprintf("key %s missing", iter.Key()),
+	v := reflect.Indirect(reflect.ValueOf(body))
+
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).IsNil() {
+			t := v.Type()
+			return &UserInputError{
+				err_msg: fmt.Sprintf("key %s missing", t.Field(i).Name),
 			}
 		}
 	}
