@@ -23,6 +23,7 @@ func ApiRouteRegistHandler(server *HttpServer, route *http.ServeMux) error {
 		err := json_middle(r, body)
 
 		if err != nil {
+			println("C")
 			HttpErrorHandle(err, w, r)
 			return
 		}
@@ -32,8 +33,10 @@ func ApiRouteRegistHandler(server *HttpServer, route *http.ServeMux) error {
 				[]byte(*body.Password),
 			),
 		)
+		println(password)
 		result, err := login_sql.Query(body.Account, password)
 		if err != nil {
+			println("A")
 			HttpErrorHandle(err, w, r)
 			return
 		}

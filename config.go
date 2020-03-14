@@ -20,8 +20,8 @@ type sqlConfig struct {
 var Config ConfigType = ConfigType{
 	google_file_parent: "1376hSupEtrCgFDNmstrdK3oSDPOw5IGu",
 	sql: sqlConfig{
-		account:  "e539",
-		password: "e539lab",
+		account:  "test",
+		password: "123456",
 		database: "web_service",
 		host:     "127.0.0.1",
 		port:     3306,
