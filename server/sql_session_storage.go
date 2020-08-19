@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"database/sql"
@@ -20,6 +20,7 @@ type SQLStorage struct {
 }
 
 func NewSQLStorage(db *sql.DB, config SQLStorageConfig) (*SQLStorage, error) {
+	db.Exec(fmt.Sprintf("Create table `%s` if not exists (`id` INT NOT NULL, `data` JSON NULL, PRIMARY KEY (`id`)); ", config.TableName))
 	get_sql, err := db.Prepare(fmt.Sprintf("select id, data from `%s` where id=? limit 1", config.TableName))
 	if err != nil {
 		return nil, err

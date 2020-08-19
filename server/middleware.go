@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"encoding/json"
@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+
+	cuserr "github.com/karta0807913/lab_server/error"
 )
 
 type MiddlewareInterface interface {
@@ -23,7 +25,7 @@ func (self Middleware) Handle(req *http.Request, body interface{}) error {
 
 type MethodCheck struct {
 	Middleware
-	method string
+	Method string
 }
 
 type JsonBodyParser struct {
@@ -35,7 +37,7 @@ type BodyCheck struct {
 }
 
 func (self MethodCheck) Handle(req *http.Request, body interface{}) error {
-	if req.Method != self.method {
+	if req.Method != self.Method {
 		return errors.New(self.err_msg)
 	}
 	return nil
@@ -50,7 +52,7 @@ func (self JsonBodyParser) Handle(req *http.Request, body interface{}) error {
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(body); err != nil {
-		return new(IsNotJsonError)
+		return new(cuserr.IsNotJsonError)
 	}
 	return nil
 }
@@ -61,8 +63,8 @@ func (self BodyCheck) Handle(req *http.Request, body interface{}) error {
 	for i := 0; i < v.NumField(); i++ {
 		if v.Field(i).IsNil() {
 			t := v.Type()
-			return &UserInputError{
-				err_msg: fmt.Sprintf("key %s missing", t.Field(i).Name),
+			return &cuserr.UserInputError{
+				ErrMsg: fmt.Sprintf("key %s missing", t.Field(i).Name),
 			}
 		}
 	}

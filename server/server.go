@@ -1,25 +1,24 @@
-package main
+package server
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/karta0807913/lab_server/utils"
+	"gorm.io/gorm"
 )
 
 type ServerSettings struct {
 	PublicKeyPath, PrivateKeyPath string
 	ServerAddress                 string
 	Storage                       Storage
-	Db                            *sql.DB
-	Drive                         *GoogleDrive
+	Db                            *gorm.DB
 }
 
 func NewSessionHttpServer(config ServerSettings) (*HttpServer, error) {
-	jwt, err := NewJwtHelper(config.PublicKeyPath, config.PrivateKeyPath)
+	jwt, err := utils.NewJwtHelper(config.PublicKeyPath, config.PrivateKeyPath)
 	if err != nil {
 		return nil, err
 	}
@@ -32,22 +31,24 @@ func NewSessionHttpServer(config ServerSettings) (*HttpServer, error) {
 			Handler: handler,
 			Addr:    config.ServerAddress,
 		},
-		drive: config.Drive,
-		db:    config.Db,
+		db: config.Db,
 	}
 	return server, nil
 }
 
-type SessionServMux struct {
-	http.ServeMux
-	jwt             *JwtHelper
-	session_storage Storage
-}
-
 type HttpServer struct {
 	*http.Server
-	drive *GoogleDrive
-	db    *sql.DB
+	db *gorm.DB
+}
+
+func (self HttpServer) DB() *gorm.DB {
+	return self.db
+}
+
+type SessionServMux struct {
+	http.ServeMux
+	jwt             *utils.JwtHelper
+	session_storage Storage
 }
 
 func (self *SessionServMux) getSession(r *http.Request) *SessionData {

@@ -1,0 +1,3 @@
+[submodule "clinet"]
+	path = clinet
+	url = https://github.com/karta0807913/lab_client.git

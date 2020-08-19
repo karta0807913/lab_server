@@ -1,4 +1,4 @@
-package main
+package cuserr
 
 import (
 	"log"
@@ -31,13 +31,23 @@ func (IsNotJsonError) Error() string {
 
 type UserInputError struct {
 	error
-	err_msg string
+	ErrMsg string
 }
 
 func (self UserInputError) Error() string {
-	return self.err_msg
+	return self.ErrMsg
 }
 
+type FileUploadError struct {
+	error
+	ErrMsg string
+}
+
+func (self FileUploadError) Error() string {
+	return self.ErrMsg
+}
+
+// TODO: add log and more error response
 func HttpErrorHandle(err error, w http.ResponseWriter, r *http.Request) {
 	switch err := err.(type) {
 	default:
@@ -52,5 +62,8 @@ func HttpErrorHandle(err error, w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(403)
 		w.Write([]byte(err.Error()))
 		break
+	case *FileUploadError:
+		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
 	}
 }

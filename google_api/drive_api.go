@@ -1,4 +1,4 @@
-package main
+package gapi
 
 import (
 	"bytes"
@@ -12,6 +12,13 @@ import (
 	"net/textproto"
 	"os"
 )
+
+func NewGoogleDrive(token string) *GoogleDrive {
+	return &GoogleDrive {
+		token: token,
+		client: &http.Client{},
+	}
+}
 
 type GoogleDrive struct {
 	token  string

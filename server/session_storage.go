@@ -1,4 +1,4 @@
-package main
+package server
 
 type Session interface {
 	Get(string) interface{}
