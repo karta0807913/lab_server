@@ -3,45 +3,71 @@ package route
 import (
 	"net/http"
 
-	cuserr "github.com/karta0807913/lab_server/error"
+	"github.com/gin-gonic/gin"
 	"github.com/karta0807913/lab_server/server"
+	"gorm.io/gorm"
 )
 
-type LoginChecker struct {
-	http.Handler
+type RouteConfig struct {
+	Server     *gin.Engine
+	UploadPath string
+	DB         *gorm.DB
 }
 
-func (self LoginChecker) ServeHTTP(_w http.ResponseWriter, r *http.Request) {
-	w := _w.(*server.ResponseWriter)
-	// fmt.Println(w.Session.session)
-	if w.Session.Get("mem_id") == nil {
-		cuserr.HttpErrorHandle(new(cuserr.PleasLoginError), w, r)
-		return
+func checkLogin(c *gin.Context) {
+	session := c.MustGet("session").(server.Session)
+	id := session.Get("mem_id")
+	if id == nil {
+		c.String(403, "Permission Denied")
+		c.Abort()
 	}
-	self.Handler.ServeHTTP(w, r)
 }
 
-func Route(serv *server.HttpServer, upload_path string) {
-	router := serv.Handler.(*server.SessionServMux)
-	// router.HandleFunc("/", func(_w http.ResponseWriter, r *http.Request) {
-	// 	w := _w.(*ResponseWriter)
-	//     fmt.Println(w.Session.Get("A"))
-	//     if w.Session.Get("A") != nil && w.Session.Get("A").(string) == "B" {
-	//         w.Session.Set("A", "C")
-	//     } else {
-	//         w.Session.Set("A", "B")
-	//     }
-	// 	w.Write([]byte("Hello"))
+func Route(config RouteConfig) {
+	// serv.GET("/", func(c *gin.Context) {
+	// 	session := c.MustGet("session").(server.Session)
+	// 	fmt.Println(session.Get("A"))
+	// 	if session.Get("A") != nil && session.Get("A").(string) == "B" {
+	// 		session.Set("A", "C")
+	// 	} else {
+	// 		session.Set("A", "B")
+	// 	}
+	// 	c.Writer.Write([]byte("Hello"))
 	// })
+	config.Server.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "http://127.0.0.1:3000")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Headers", "content-type")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+		}
+	})
 
-	file_route := http.NewServeMux()
-	file_login_check := LoginChecker{
-		Handler: http.StripPrefix("/file", file_route),
-	}
-	router.Handle("/file/", file_login_check)
-	FileRouteRegistHandler(serv, file_route, upload_path)
+	api_route := config.Server.Group("/api/")
+	ApiRouteRegistHandler(ApiRouteConfig{
+		db:    config.DB,
+		route: api_route,
+	})
 
-	api_route := http.NewServeMux()
-	ApiRouteRegistHandler(serv, api_route)
-	router.Handle("/api/", http.StripPrefix("/api", api_route))
+	file_route := config.Server.Group("/file/")
+	file_route.Use(checkLogin)
+	FileRouteRegistHandler(FileRouteConfig{
+		route:      file_route,
+		db:         config.DB,
+		uploadPath: config.UploadPath,
+	})
+
+	member_route := config.Server.Group("/member/")
+	member_route.Use(checkLogin)
+	MemberRouteRegistHandler(MemberRouteConfig{
+		route: member_route,
+		db:    config.DB,
+	})
+
+	website_route := config.Server.Group("/web")
+	WebsiteRouteRegistHandler(WebsiteRouteConfig{
+		route:    website_route,
+		prefix:   "/web",
+		servPath: "./build",
+	})
 }

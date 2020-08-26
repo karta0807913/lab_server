@@ -66,7 +66,7 @@ func (self *SQLStorage) Get(session_id string) (Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SessionData{
+	return &MapSession{
 		session: body,
 		id:      sid,
 	}, nil

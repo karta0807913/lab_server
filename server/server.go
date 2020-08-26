@@ -15,6 +15,7 @@ type ServerSettings struct {
 	ServerAddress                 string
 	Storage                       Storage
 	Db                            *gorm.DB
+	SessionName                   string
 }
 
 func NewSessionHttpServer(config ServerSettings) (*HttpServer, error) {
@@ -25,6 +26,7 @@ func NewSessionHttpServer(config ServerSettings) (*HttpServer, error) {
 	handler := &SessionServMux{
 		jwt:             jwt,
 		session_storage: config.Storage,
+		session_name:    config.SessionName,
 	}
 	server := &HttpServer{
 		Server: &http.Server{
@@ -49,37 +51,37 @@ type SessionServMux struct {
 	http.ServeMux
 	jwt             *utils.JwtHelper
 	session_storage Storage
+	session_name    string
 }
 
-func (self *SessionServMux) getSession(r *http.Request) *SessionData {
-	signature, err := r.Cookie("session")
+func (self *SessionServMux) getSession(r *http.Request) Session {
+	signature, err := r.Cookie(self.session_name)
 
 	if err != nil {
-		return NewSessionData()
+		return NewMapSession()
 	}
 	data := []byte(signature.Value)
 	claim, err := self.jwt.Verify(data)
 	if err != nil {
-		return NewSessionData()
+		return NewMapSession()
 	}
 	id, ok := claim.Set["sid"]
 	if !ok {
-		return NewSessionData()
+		return NewMapSession()
 	}
 	sid, ok := id.(string)
 	if !ok {
-		return NewSessionData()
+		return NewMapSession()
 	}
 	session, err := self.session_storage.Get(sid)
 	if err != nil {
 		log.Printf("fetch session error, reason: %s\n", err.Error())
-		return NewSessionData()
+		return NewMapSession()
 	}
-	return session.(*SessionData)
+	return session
 }
 
 func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	session := self.getSession(r)
 	wrap := &ResponseWriter{
 		ResponseWriter: w,
@@ -96,7 +98,7 @@ func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			)
 			if err == nil {
 				http.SetCookie(w, &http.Cookie{
-					Name:     "session",
+					Name:     self.session_name,
 					Value:    string(data),
 					HttpOnly: true,
 					Secure:   false,
@@ -123,7 +125,7 @@ func (self *SessionServMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type ResponseWriter struct {
 	http.ResponseWriter
-	Session    *SessionData
+	Session    Session
 	statusCode int
 	done       bool
 	callback   func(*ResponseWriter)
@@ -134,7 +136,7 @@ func (self *ResponseWriter) Header() http.Header {
 }
 
 func (self *ResponseWriter) Write(b []byte) (int, error) {
-	if self.Session.updated && !self.done {
+	if self.Session.IsUpdated() && !self.done {
 		self.callback(self)
 	}
 	self.done = true
@@ -142,7 +144,7 @@ func (self *ResponseWriter) Write(b []byte) (int, error) {
 }
 
 func (self *ResponseWriter) WriteHeader(code int) {
-	if self.Session.updated && !self.done {
+	if self.Session.IsUpdated() && !self.done {
 		self.callback(self)
 	}
 	self.done = true

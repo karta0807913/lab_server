@@ -55,7 +55,7 @@ func NewJwtHelper(public_key_path string, private_key_path string) (*JwtHelper, 
 		return nil, errors.New("can't decode private key")
 	}
 
-	public_key, err := x509.ParsePKIXPublicKey(public_key_block.Bytes)
+	public_key, err := x509.ParsePKCS1PublicKey(public_key_block.Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func NewJwtHelper(public_key_path string, private_key_path string) (*JwtHelper, 
 	}
 
 	return &JwtHelper{
-		public_key:  public_key.(*rsa.PublicKey),
+		public_key:  public_key,
 		private_key: private_key,
 	}, nil
 }

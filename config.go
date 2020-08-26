@@ -33,19 +33,12 @@ func number(varname string) int {
 
 var Config ConfigType = ConfigType{
 	google_file_parent: "1376hSupEtrCgFDNmstrdK3oSDPOw5IGu",
-	// sql: sqlConfig{
-	// 	account:  os.Getenv("MYSQL_ACCOUNT"),
-	// 	password: os.Getenv("MYSQL_PASS"),
-	// 	database: os.Getenv("MYSQL_DATABS"),
-	// 	host:     os.Getenv("MYSQL_HOST"),
-	// 	port:     number("MYSQL_PORT"),
-	// },
 	sql: sqlConfig{
-		account:  "test",
-		password: "123456",
-		database: "web_service",
-		host:     "127.0.0.1",
-		port:     3306,
+		account:  os.Getenv("MYSQL_ACCOUNT"),
+		password: os.Getenv("MYSQL_PASS"),
+		database: os.Getenv("MYSQL_DATABS"),
+		host:     os.Getenv("MYSQL_HOST"),
+		port:     number("MYSQL_PORT"),
 	},
 	public_key_path:  "./public.pem",
 	private_key_path: "./private.pem",

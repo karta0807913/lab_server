@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"log"
 	"strconv"
 
 	"gorm.io/gorm"
@@ -43,7 +44,7 @@ func (self GormStorage) Get(session_id string) (Session, error) {
 		return nil, err
 	}
 	id := strconv.Itoa(int(session.ID))
-	return &SessionData{
+	return &MapSession{
 		session: body,
 		id:      id,
 	}, nil
@@ -66,7 +67,11 @@ func (self *GormStorage) Set(session Session) error {
 	}
 	tx := self.db.Create(model)
 	if tx.Error != nil {
-		return tx.Error
+		tx = self.db.Model(model).Updates(model)
+		if tx.Error != nil {
+			log.Println(tx.Error)
+			return tx.Error
+		}
 	}
 	session.SetId(strconv.Itoa(int(model.ID)))
 	return nil

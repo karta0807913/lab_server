@@ -4,14 +4,18 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
-	"net/http"
+	"io/ioutil"
+	"log"
 	"os"
 	"path"
 
+	"github.com/gin-gonic/gin"
 	cuserr "github.com/karta0807913/lab_server/error"
 	"github.com/karta0807913/lab_server/model"
 	"github.com/karta0807913/lab_server/server"
+	"gorm.io/gorm"
 )
 
 const (
@@ -20,142 +24,139 @@ const (
 	FileDone        = "2"
 )
 
-func FileRouteRegistHandler(serv *server.HttpServer, route *http.ServeMux, upload_path string) {
+type FileRouteConfig struct {
+	route      *gin.RouterGroup
+	uploadPath string
+	db         *gorm.DB
+}
+
+func FileRouteRegistHandler(config FileRouteConfig) {
 	type UploadParameter struct {
 		Filename string `json:"filename"`
 	}
 
-	checkPostMethod := server.MethodCheck{
-		Method: "POST",
-	}
+	uploadPath := config.uploadPath
+	route := config.route
+	db := config.db
 
-	route.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
-		err := checkPostMethod.Handle(r, nil)
+	route.POST("/upload", func(c *gin.Context) {
+		reader, err := c.Request.MultipartReader()
 		if err != nil {
-			cuserr.HttpErrorHandle(err, w, r)
-			return
-		}
-		reader, err := r.MultipartReader()
-		if err != nil {
-			cuserr.HttpErrorHandle(err, w, r)
+			cuserr.GinErrorHandle(err, c)
 			return
 		}
 		part, err := reader.NextPart()
 		if err == io.EOF {
-			cuserr.HttpErrorHandle(cuserr.UserInputError{
+			cuserr.GinErrorHandle(cuserr.UserInputError{
 				ErrMsg: "format error",
-			}, w, r)
+			}, c)
 			return
 		}
 		if part.Header.Get("Content-Type") != "application/json" {
-			cuserr.HttpErrorHandle(cuserr.UserInputError{
+			cuserr.GinErrorHandle(cuserr.UserInputError{
 				ErrMsg: "first block must be json type",
-			}, w, r)
+			}, c)
 			return
 		}
 		decoder := json.NewDecoder(part)
 		param := new(UploadParameter)
 		err = decoder.Decode(param)
 		if err != nil {
-			cuserr.HttpErrorHandle(err, w, r)
+			cuserr.GinErrorHandle(err, c)
 			return
 		}
 
 		part, err = reader.NextPart()
 		if err == io.EOF {
-			cuserr.HttpErrorHandle(cuserr.UserInputError{
+			cuserr.GinErrorHandle(cuserr.UserInputError{
 				ErrMsg: "file missing",
-			}, w, r)
+			}, c)
 			return
 		}
 
 		crypto := sha512.New()
 		file_reader := io.TeeReader(part, crypto)
-		fileHash := base64.URLEncoding.EncodeToString(crypto.Sum(nil))
 
-		path := path.Join(upload_path, fileHash)
-		_, err = os.Stat(path)
-		if os.IsNotExist(err) {
-			file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0640)
-			if err != nil {
-				cuserr.HttpErrorHandle(cuserr.FileUploadError{
-					ErrMsg: "Can't create file",
-				}, w, r)
-				return
-			}
-			defer file.Close()
-			io.Copy(file, file_reader)
-		}
-
-		fileData := model.FileData{
-			Filename: param.Filename,
-			FileHash: fileHash,
-		}
-		tx := serv.DB().Create(fileData)
-		if tx.Error != nil {
-			cuserr.HttpErrorHandle(tx.Error, w, r)
+		tmpFile, err := ioutil.TempFile(path.Join(uploadPath, "temp"), "uploading_*")
+		if err != nil {
+			cuserr.GinErrorHandle(cuserr.FileUploadError{
+				ErrMsg: "Can't create file",
+			}, c)
 			return
 		}
 
-		encoder := json.NewEncoder(w)
+		io.Copy(tmpFile, file_reader)
+		sum := crypto.Sum(nil)
+		fileHash := base64.URLEncoding.EncodeToString(sum)
 
-		w.WriteHeader(200)
-		encoder.Encode(map[string]interface{}{
+		path := path.Join(uploadPath, fileHash)
+		_, err = os.Stat(path)
+		if os.IsNotExist(err) {
+			os.Rename(tmpFile.Name(), path)
+		} else {
+			os.Remove(tmpFile.Name())
+		}
+
+		fileData := model.FileData{
+			Filename:    param.Filename,
+			FileHash:    fileHash,
+			UserId:      uint(c.MustGet("session").(server.Session).Get("mem_id").(float64)),
+			ContextType: part.Header.Values("Content-Type")[0],
+		}
+		tx := db.Select("file_name", "file_hash", "user_id").Create(&fileData)
+		if tx.Error != nil {
+			cuserr.GinErrorHandle(tx.Error, c)
+			return
+		}
+
+		c.JSON(200, map[string]interface{}{
 			"msg":     "request accept",
 			"file_id": fileData.ID,
 		})
 	})
 
-	checkGetMethod := server.MethodCheck{
-		Method: "GET",
-	}
-	route.HandleFunc("/list", func(w http.ResponseWriter, r *http.Request) {
-		err := checkGetMethod.Handle(r, nil)
-		if err != nil {
-			cuserr.HttpErrorHandle(err, w, r)
-			return
-		}
-
+	route.GET("/list", func(c *gin.Context) {
 		var file_list []model.FileData
-		tx := serv.DB().Select([]string{"id", "filename"}).Where("deleted = 0").Find(&file_list)
+		id, ok := c.GetQuery("id")
+		var tx *gorm.DB
+		if ok {
+			tx = db.Select([]string{"id", "filename", "context_type", "user_id"}).Where("deleted = 0 and id = ?", id).Where(&file_list)
+		} else {
+			tx = db.Select([]string{"id", "filename", "context_type", "user_id"}).Where("deleted = 0").Find(&file_list)
+		}
 		if tx.Error != nil {
-			cuserr.HttpErrorHandle(tx.Error, w, r)
+			cuserr.GinErrorHandle(tx.Error, c)
 			return
 		}
 
-		w.WriteHeader(200)
-		encoder := json.NewEncoder(w)
-		err = encoder.Encode(file_list)
-		if err != nil {
-			cuserr.HttpErrorHandle(err, w, r)
-			return
-		}
+		c.JSON(200, file_list)
 	})
 
-	route.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
-		err := checkGetMethod.Handle(r, nil)
-		if err != nil {
-			cuserr.HttpErrorHandle(err, w, r)
+	route.GET("/download", func(c *gin.Context) {
+		fileInfo := model.FileData{}
+		id, ok := c.GetQuery("id")
+		if !ok {
+			cuserr.GinErrorHandle(&cuserr.UserInputError{
+				ErrMsg: "File id missing",
+			}, c)
 			return
 		}
-		values := r.URL.Query()
-		id := values.Get("id")
-		var fileData model.FileData
-		tx := serv.DB().First(&fileData, id)
+		tx := db.Select("Filename", "FileHash").Where("deleted = 0 and id = ?", id).First(&fileInfo)
+		log.Println(fileInfo)
 		if tx.Error != nil {
-			cuserr.HttpErrorHandle(tx.Error, w, r)
+			cuserr.GinErrorHandle(tx.Error, c)
 			return
 		}
-		if tx.RowsAffected == 0 {
-			cuserr.HttpErrorHandle(cuserr.UserInputError{
-				ErrMsg: "File Not Found",
-			}, w, r)
-		}
-		encoder := json.NewEncoder(w)
-		err = encoder.Encode(fileData)
+		filePath := path.Join(uploadPath, fileInfo.FileHash)
+		_, err := os.Stat(filePath)
 		if err != nil {
-			cuserr.HttpErrorHandle(err, w, r)
+			cuserr.GinErrorHandle(&cuserr.FileNotFoundError{
+				FileId: id,
+			}, c)
 			return
 		}
+		c.Header("Content-Type", fileInfo.ContextType)
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileInfo.Filename))
+		c.File(filePath)
 	})
 }
