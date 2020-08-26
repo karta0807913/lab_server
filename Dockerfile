@@ -1,13 +1,14 @@
+ARG URL
 FROM node:12.18.3 as client
 WORKDIR /client
 COPY client .
-RUN npm i && npm build
+ENV PUBLIC_URL ${URL}
+RUN npm i && npm run build
 
 FROM golang:1.15.0 as server
 WORKDIR /app
 COPY . .
-RUN go run tools/gen_rsa_key.go
-RUN go build -o app
+RUN go mod download && go run tools/gen_rsa_key.go && go build -o app
 
 FROM ubuntu:18.04
 
