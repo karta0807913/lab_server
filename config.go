@@ -40,28 +40,29 @@ func number(varname string) int {
 	return i
 }
 
+func getSQLConfig() sqlConfig {
+	var sql sqlConfig = sqliteConfig{
+		filepath: "./sqlite.db",
+	}
+
+	if os.Getenv("FORMAL") == "true" {
+		sql = mysqlConfig{
+			account:  os.Getenv("MYSQL_ACCOUNT"),
+			password: os.Getenv("MYSQL_PASS"),
+			database: os.Getenv("MYSQL_DATABS"),
+			host:     os.Getenv("MYSQL_HOST"),
+			port:     number("MYSQL_PORT"),
+		}
+	}
+	return sql
+}
+
 var Config ConfigType = ConfigType{
 	googleFileParent: "1376hSupEtrCgFDNmstrdK3oSDPOw5IGu",
-	// sql: sqlConfig{
-	// 	account:  os.Getenv("MYSQL_ACCOUNT"),
-	// 	password: os.Getenv("MYSQL_PASS"),
-	// 	database: os.Getenv("MYSQL_DATABS"),
-	// 	host:     os.Getenv("MYSQL_HOST"),
-	// 	port:     number("MYSQL_PORT"),
-	// },
-	// sql: sqlConfig{
-	// 	account:  "test",
-	// 	password: "123456",
-	// 	database: "web_service",
-	// 	host:     "172.18.0.2",
-	// 	port:     3306,
-	// },
-	sql: sqliteConfig{
-		filepath: "./sqlite.db",
-	},
-	publicKeyPath:  "./public.pem",
-	privateKeyPath: "./private.pem",
-	serverAddr:     ":1200",
-	googleAuthFile: "./e539-lab-web-dd38239bcca2.json",
-	uploadPath:     "./files",
+	sql:              getSQLConfig(),
+	publicKeyPath:    "./public.pem",
+	privateKeyPath:   "./private.pem",
+	serverAddr:       ":1200",
+	googleAuthFile:   "./e539-lab-web-dd38239bcca2.json",
+	uploadPath:       "./files",
 }
