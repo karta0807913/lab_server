@@ -1,12 +1,14 @@
-FROM node:12.18.3 as client
+FROM node:14 as client
 ARG PublicURL
 ARG BackendURL
-WORKDIR /client
-COPY client .
 ENV PUBLIC_URL ${PublicURL}
 ENV REACT_APP_HOST_URL ${BackendURL}
-RUN npm i
-RUN rm ./node_modules/@susisu/mte-kernel/dist/mte-kernel.mjs && npm run build
+
+COPY client/package.json client/package.json
+COPY client/package-lock.json client/package-lock.json
+RUN cd client && npm i && find node_modules -name '*.mjs' | xargs -i rm {}
+COPY . .
+RUN cd client && npm run build
 
 FROM golang:1.15.0 as server
 WORKDIR /server
