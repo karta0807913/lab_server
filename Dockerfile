@@ -15,7 +15,7 @@ WORKDIR /server
 COPY . .
 RUN go mod download && go run tools/gen_rsa_key.go && go build -o app
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 WORKDIR /app
 COPY --from=client /client/build build
 COPY --from=server /server/app .
