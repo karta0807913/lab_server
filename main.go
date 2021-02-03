@@ -25,7 +25,9 @@ func main() {
 			sql.port,
 			sql.database,
 		)
-		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+			DisableForeignKeyConstraintWhenMigrating: true,
+		})
 		if err != nil {
 			log.Fatal(err)
 		}
