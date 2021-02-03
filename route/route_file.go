@@ -7,14 +7,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 
 	"github.com/gin-gonic/gin"
+	"github.com/karta0807913/go_server_utils/serverutil"
 	cuserr "github.com/karta0807913/lab_server/error"
 	"github.com/karta0807913/lab_server/model"
-	"github.com/karta0807913/lab_server/server"
 	"gorm.io/gorm"
 )
 
@@ -30,16 +29,17 @@ type FileRouteConfig struct {
 	db         *gorm.DB
 }
 
-func FileRouteRegistHandler(config FileRouteConfig) {
-	type UploadParameter struct {
-		Filename string `json:"filename"`
-	}
-
+func FileRouteRegisterHandler(config FileRouteConfig) {
 	uploadPath := config.uploadPath
 	route := config.route
 	db := config.db
 
 	route.POST("/upload", func(c *gin.Context) {
+		type UploadParameter struct {
+			Filename string `json:"filename"`
+			TagID    *uint  `json:"tag_id"`
+		}
+
 		reader, err := c.Request.MultipartReader()
 		if err != nil {
 			cuserr.GinErrorHandle(err, c)
@@ -65,6 +65,12 @@ func FileRouteRegistHandler(config FileRouteConfig) {
 			cuserr.GinErrorHandle(err, c)
 			return
 		}
+		if param.TagID == nil {
+			cuserr.GinErrorHandle(cuserr.UserInputError{
+				ErrMsg: "Tag id missing",
+			}, c)
+			return
+		}
 
 		part, err = reader.NextPart()
 		if err == io.EOF {
@@ -75,17 +81,19 @@ func FileRouteRegistHandler(config FileRouteConfig) {
 		}
 
 		crypto := sha512.New()
-		file_reader := io.TeeReader(part, crypto)
+		fileReader := io.TeeReader(part, crypto)
 
-		tmpFile, err := ioutil.TempFile(path.Join(uploadPath, "temp"), "uploading_*")
+		tmpFile, err := ioutil.TempFile(
+			path.Join(uploadPath, "temp"), "uploading_*",
+		)
 		if err != nil {
 			cuserr.GinErrorHandle(cuserr.FileUploadError{
-				ErrMsg: "Can't create file",
+				ErrMsg: "Can't create temporary file",
 			}, c)
 			return
 		}
 
-		io.Copy(tmpFile, file_reader)
+		io.Copy(tmpFile, fileReader)
 		sum := crypto.Sum(nil)
 		fileHash := base64.URLEncoding.EncodeToString(sum)
 
@@ -100,7 +108,7 @@ func FileRouteRegistHandler(config FileRouteConfig) {
 		fileData := model.FileData{
 			Filename:    param.Filename,
 			FileHash:    fileHash,
-			UserId:      uint(c.MustGet("session").(server.Session).Get("mem_id").(float64)),
+			UserID:      uint(c.MustGet("session").(serverutil.Session).Get("mem_id").(float64)),
 			ContextType: part.Header.Values("Content-Type")[0],
 		}
 		tx := db.Select("file_name", "file_hash", "user_id").Create(&fileData)
@@ -116,20 +124,24 @@ func FileRouteRegistHandler(config FileRouteConfig) {
 	})
 
 	route.GET("/list", func(c *gin.Context) {
-		var file_list []model.FileData
+		var fileList []model.FileData
 		id, ok := c.GetQuery("id")
 		var tx *gorm.DB
 		if ok {
-			tx = db.Select([]string{"id", "filename", "context_type", "user_id"}).Where("deleted = 0 and id = ?", id).Where(&file_list)
+			tx = db.Select([]string{
+				"id", "filename", "context_type", "user_id",
+			}).Where("deleted = 0 and id = ?", id).Where(&fileList)
 		} else {
-			tx = db.Select([]string{"id", "filename", "context_type", "user_id"}).Where("deleted = 0").Find(&file_list)
+			tx = db.Select([]string{
+				"id", "filename", "context_type", "user_id",
+			}).Where("deleted = 0").Find(&fileList)
 		}
 		if tx.Error != nil {
 			cuserr.GinErrorHandle(tx.Error, c)
 			return
 		}
 
-		c.JSON(200, file_list)
+		c.JSON(200, fileList)
 	})
 
 	route.GET("/download", func(c *gin.Context) {
@@ -142,7 +154,6 @@ func FileRouteRegistHandler(config FileRouteConfig) {
 			return
 		}
 		tx := db.Select("Filename", "FileHash").Where("deleted = 0 and id = ?", id).First(&fileInfo)
-		log.Println(fileInfo)
 		if tx.Error != nil {
 			cuserr.GinErrorHandle(tx.Error, c)
 			return

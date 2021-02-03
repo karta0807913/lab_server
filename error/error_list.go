@@ -1,11 +1,14 @@
 package cuserr
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type AccountOrPasswordError struct {
@@ -92,20 +95,30 @@ func HttpErrorHandle(err error, w http.ResponseWriter, r *http.Request) {
 func GinErrorHandle(err error, c *gin.Context) {
 	switch err := err.(type) {
 	default:
-		c.Writer.WriteHeader(500)
-		c.Writer.Write([]byte("server error"))
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.AbortWithStatusJSON(404, gin.H{
+				"message": "record not found",
+			})
+		} else if errors.Is(err, io.EOF) {
+			c.AbortWithStatusJSON(403, gin.H{
+				"message": "http body required",
+			})
+		}
+		c.AbortWithStatusJSON(500, gin.H{
+			"message": "unknow error",
+		})
 		log.Println(err.Error())
-		break
 	case *PleasLoginError,
 		*AccountOrPasswordError,
 		*AccountUsed,
 		*IsNotJsonError,
 		*UserInputError:
-		c.Writer.WriteHeader(403)
-		c.Writer.Write([]byte(err.Error()))
-		break
+		c.AbortWithStatusJSON(403, gin.H{
+			"message": err.Error(),
+		})
 	case *FileUploadError:
-		c.Writer.WriteHeader(500)
-		c.Writer.Write([]byte(err.Error()))
+		c.AbortWithStatusJSON(500, gin.H{
+			"message": err.Error(),
+		})
 	}
 }

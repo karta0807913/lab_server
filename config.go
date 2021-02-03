@@ -6,21 +6,30 @@ import (
 )
 
 type ConfigType struct {
-	google_file_parent string
-	sql                sqlConfig
-	serverAddr         string
-	public_key_path    string
-	private_key_path   string
-	google_auth_file   string
-	upload_path        string
+	googleFileParent string
+	sql              sqlConfig
+	serverAddr       string
+	publicKeyPath    string
+	privateKeyPath   string
+	googleAuthFile   string
+	uploadPath       string
 }
 
-type sqlConfig struct {
+type mysqlConfig struct {
+	sqlConfig
 	account  string
 	password string
 	database string
 	host     string
 	port     int
+}
+
+type sqliteConfig struct {
+	sqlConfig
+	filepath string
+}
+
+type sqlConfig interface {
 }
 
 func number(varname string) int {
@@ -32,17 +41,27 @@ func number(varname string) int {
 }
 
 var Config ConfigType = ConfigType{
-	google_file_parent: "1376hSupEtrCgFDNmstrdK3oSDPOw5IGu",
-	sql: sqlConfig{
-		account:  os.Getenv("MYSQL_ACCOUNT"),
-		password: os.Getenv("MYSQL_PASS"),
-		database: os.Getenv("MYSQL_DATABS"),
-		host:     os.Getenv("MYSQL_HOST"),
-		port:     number("MYSQL_PORT"),
+	googleFileParent: "1376hSupEtrCgFDNmstrdK3oSDPOw5IGu",
+	// sql: sqlConfig{
+	// 	account:  os.Getenv("MYSQL_ACCOUNT"),
+	// 	password: os.Getenv("MYSQL_PASS"),
+	// 	database: os.Getenv("MYSQL_DATABS"),
+	// 	host:     os.Getenv("MYSQL_HOST"),
+	// 	port:     number("MYSQL_PORT"),
+	// },
+	// sql: sqlConfig{
+	// 	account:  "test",
+	// 	password: "123456",
+	// 	database: "web_service",
+	// 	host:     "172.18.0.2",
+	// 	port:     3306,
+	// },
+	sql: sqliteConfig{
+		filepath: "./sqlite.db",
 	},
-	public_key_path:  "./public.pem",
-	private_key_path: "./private.pem",
-	serverAddr:       ":1200",
-	google_auth_file: "./e539-lab-web-dd38239bcca2.json",
-	upload_path:      "./files",
+	publicKeyPath:  "./public.pem",
+	privateKeyPath: "./private.pem",
+	serverAddr:     ":1200",
+	googleAuthFile: "./e539-lab-web-dd38239bcca2.json",
+	uploadPath:     "./files",
 }

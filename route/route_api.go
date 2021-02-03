@@ -6,13 +6,13 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/karta0807913/go_server_utils/serverutil"
 	cuserr "github.com/karta0807913/lab_server/error"
 	"github.com/karta0807913/lab_server/model"
-	"github.com/karta0807913/lab_server/server"
 	"gorm.io/gorm"
 )
 
-type ApiRouteConfig struct {
+type APIRouteConfig struct {
 	route *gin.RouterGroup
 	db    *gorm.DB
 }
@@ -37,12 +37,11 @@ func saltPassword(str string) string {
 	return password
 }
 
-func ApiRouteRegistHandler(config ApiRouteConfig) error {
+func APIRouteRegisterHandler(config APIRouteConfig) error {
 	route := config.route
 	db := config.db
 
 	route.POST("/login", func(c *gin.Context) {
-		log.Println("login")
 		type Body struct {
 			Account  string `json:"account" binding:"required"`
 			Password string `json:"password" binding:"required"`
@@ -56,7 +55,7 @@ func ApiRouteRegistHandler(config ApiRouteConfig) error {
 		password := saltPassword(body.Password)
 		log.Println(password)
 		var userData model.UserData
-		tx := db.Select("id").First(
+		tx := db.Select("ID", "Nickname", "IsAdmin").First(
 			&userData,
 			"account = ? and password = ?",
 			body.Account,
@@ -66,12 +65,10 @@ func ApiRouteRegistHandler(config ApiRouteConfig) error {
 			cuserr.GinErrorHandle(new(cuserr.AccountOrPasswordError), c)
 			return
 		}
-		session := c.MustGet("session").(server.Session)
+		session := c.MustGet("session").(serverutil.Session)
 		session.Set("mem_id", userData.ID)
-		c.JSON(200, map[string]interface{}{
-			"state":   0,
-			"message": "login success",
-		})
+		session.Set("is_admin", userData.IsAdmin)
+		c.JSON(200, userData)
 	})
 
 	route.POST("/sign_up", func(c *gin.Context) {
@@ -86,7 +83,9 @@ func ApiRouteRegistHandler(config ApiRouteConfig) error {
 			cuserr.GinErrorHandle(err, c)
 			return
 		}
-		tx := db.Select("Nickname", "Account", "Password").Create(&model.UserData{
+		tx := db.Select(
+			"Nickname", "Account", "Password",
+		).Create(&model.UserData{
 			Nickname: body.Name,
 			Account:  body.Account,
 			Password: saltPassword(body.Password),
@@ -101,7 +100,11 @@ func ApiRouteRegistHandler(config ApiRouteConfig) error {
 		})
 	})
 
-	route.GET("/me", func(c *gin.Context) {
+	route.GET("/homepage", func(c *gin.Context) {
+		var data model.BlogData
+		data.Deleted = 0
+		db.Select("id", "title", "OwnerID", "Context").Preload("TagList").Where("deleted=? and id=?", data.Deleted, 1).First(&data)
+		c.JSON(200, data)
 	})
 
 	return nil

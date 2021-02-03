@@ -1,26 +1,37 @@
 package model
 
 import (
-	"fmt"
-
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-func CreateDB(user, pass, host string, port int, dbname string) (*gorm.DB, error) {
-	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		user,
-		pass,
-		host,
-		port,
-		dbname,
-	)
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+func InitDB(db *gorm.DB) error {
+	err := db.AutoMigrate(&UserData{})
 	if err != nil {
-		return nil, err
+		return err
 	}
-	db.AutoMigrate(&FileData{})
-	db.AutoMigrate(&UserData{})
-	return db, err
+	err = db.AutoMigrate(&FileData{})
+	if err != nil {
+		return err
+	}
+	err = db.AutoMigrate(&TagInfo{})
+	if err != nil {
+		return err
+	}
+	err = db.AutoMigrate(&BlogData{})
+	if err != nil {
+		return err
+	}
+	err = db.AutoMigrate(&BlogTag{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func CreateSqliteDB(filename string) (*gorm.DB, error) {
+	return gorm.Open(sqlite.Open(filename), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger:                                   logger.Default.LogMode(logger.Info),
+	})
 }

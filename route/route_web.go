@@ -13,7 +13,7 @@ type WebsiteRouteConfig struct {
 	servPath string
 }
 
-func WebsiteRouteRegistHandler(config WebsiteRouteConfig) {
+func WebsiteRouteRegisterHandler(config WebsiteRouteConfig) {
 	route := config.route
 
 	route.GET("/*name", func(c *gin.Context) {

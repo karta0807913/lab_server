@@ -1,35 +1,52 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/karta0807913/go_server_utils/serverutil"
 	"github.com/karta0807913/lab_server/model"
 	"github.com/karta0807913/lab_server/route"
-	"github.com/karta0807913/lab_server/server"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	db, err := model.CreateDB(
-		Config.sql.account,
-		Config.sql.password,
-		Config.sql.host,
-		Config.sql.port,
-		Config.sql.database,
-	)
-	if err != nil {
-		log.Fatal(err)
+	var db *gorm.DB
+	var err error
+	switch sql := Config.sql.(type) {
+	case mysqlConfig:
+		dsn := fmt.Sprintf(
+			"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			sql.account,
+			sql.password,
+			sql.host,
+			sql.port,
+			sql.database,
+		)
+		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err != nil {
+			log.Fatal(err)
+		}
+	case sqliteConfig:
+		db, err = model.CreateSqliteDB(sql.filepath)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-
-	storage, err := server.NewGormStorage(db)
+	err = model.InitDB(db)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	storage, err := serverutil.NewGormStorage(db)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	server, err :=
-		server.NewGinServer(server.ServerSettings{
-			PublicKeyPath:  Config.public_key_path,
-			PrivateKeyPath: Config.private_key_path,
+		serverutil.NewGinServer(serverutil.ServerSettings{
+			PrivateKeyPath: Config.privateKeyPath,
 			ServerAddress:  Config.serverAddr,
 			Db:             db,
 			Storage:        storage,
@@ -42,7 +59,7 @@ func main() {
 	route.Route(route.RouteConfig{
 		DB:         db,
 		Server:     server,
-		UploadPath: Config.upload_path,
+		UploadPath: Config.uploadPath,
 	})
 
 	log.Printf("server listening on %s", Config.serverAddr)

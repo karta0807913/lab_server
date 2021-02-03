@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/karta0807913/lab_server/server"
+	"github.com/karta0807913/go_server_utils/serverutil"
 	"gorm.io/gorm"
 )
 
@@ -15,7 +15,7 @@ type RouteConfig struct {
 }
 
 func checkLogin(c *gin.Context) {
-	session := c.MustGet("session").(server.Session)
+	session := c.MustGet("session").(serverutil.Session)
 	id := session.Get("mem_id")
 	if id == nil {
 		c.String(403, "Permission Denied")
@@ -38,36 +38,50 @@ func Route(config RouteConfig) {
 		c.Header("Access-Control-Allow-Origin", "http://127.0.0.1:3000")
 		c.Header("Access-Control-Allow-Credentials", "true")
 		c.Header("Access-Control-Allow-Headers", "content-type")
+		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
 		}
 	})
 
-	api_route := config.Server.Group("/api/")
-	ApiRouteRegistHandler(ApiRouteConfig{
+	apiRoute := config.Server.Group("/api/")
+	APIRouteRegisterHandler(APIRouteConfig{
 		db:    config.DB,
-		route: api_route,
+		route: apiRoute,
 	})
 
-	file_route := config.Server.Group("/file/")
-	file_route.Use(checkLogin)
-	FileRouteRegistHandler(FileRouteConfig{
-		route:      file_route,
+	fileRoute := config.Server.Group("/file/")
+	fileRoute.Use(checkLogin)
+	FileRouteRegisterHandler(FileRouteConfig{
+		route:      fileRoute,
 		db:         config.DB,
 		uploadPath: config.UploadPath,
 	})
 
-	member_route := config.Server.Group("/member/")
-	member_route.Use(checkLogin)
-	MemberRouteRegistHandler(MemberRouteConfig{
-		route: member_route,
+	memberRoute := config.Server.Group("/member/")
+	memberRoute.Use(checkLogin)
+	MemberRouteRegisterHandler(MemberRouteConfig{
+		route: memberRoute,
 		db:    config.DB,
 	})
 
-	website_route := config.Server.Group("/web")
-	WebsiteRouteRegistHandler(WebsiteRouteConfig{
-		route:    website_route,
+	blogRoute := config.Server.Group("/blog")
+	blogRoute.Use(checkLogin)
+	BlogRouteRegisterHandler(APIRouteConfig{
+		route: blogRoute,
+		db:    config.DB,
+	})
+
+	websiteRoute := config.Server.Group("/web")
+	WebsiteRouteRegisterHandler(WebsiteRouteConfig{
+		route:    websiteRoute,
 		prefix:   "/web",
 		servPath: "./build",
+	})
+
+	adminRoute := config.Server.Group("/admin")
+	AdminRouteRegisterHandler(APIRouteConfig{
+		route: adminRoute,
+		db:    config.DB,
 	})
 }
