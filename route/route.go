@@ -66,7 +66,6 @@ func Route(config RouteConfig) {
 	})
 
 	blogRoute := config.Server.Group("/blog")
-	blogRoute.Use(checkLogin)
 	BlogRouteRegisterHandler(APIRouteConfig{
 		route: blogRoute,
 		db:    config.DB,
