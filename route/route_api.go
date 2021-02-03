@@ -71,33 +71,27 @@ func APIRouteRegisterHandler(config APIRouteConfig) error {
 		c.JSON(200, userData)
 	})
 
-	route.POST("/sign_up", func(c *gin.Context) {
-		type Body struct {
-			Name     string `json:"name" binding:"required"`
-			Account  string `json:"account" binding:"required"`
-			Password string `json:"password" binding:"required"`
-		}
-		body := new(Body)
-		err := bindBody(c, body)
-		if err != nil {
-			cuserr.GinErrorHandle(err, c)
+	route.GET("/user", func(c *gin.Context) {
+		id, ok := c.GetQuery("user_id")
+		if !ok {
+			cuserr.GinErrorHandle(&cuserr.UserInputError{
+				ErrMsg: "id not found",
+			}, c)
 			return
 		}
-		tx := db.Select(
-			"Nickname", "Account", "Password",
-		).Create(&model.UserData{
-			Nickname: body.Name,
-			Account:  body.Account,
-			Password: saltPassword(body.Password),
-		})
+		var user model.UserData
+		tx := db.Select("ID", "Nickname").Where("id = ?", id).First(&user)
+		if tx.RowsAffected == 0 {
+			cuserr.GinErrorHandle(&cuserr.UserInputError{
+				ErrMsg: "user not found",
+			}, c)
+			return
+		}
 		if tx.Error != nil {
-			log.Println(tx.Error.Error())
-			cuserr.GinErrorHandle(new(cuserr.AccountUsed), c)
+			cuserr.GinErrorHandle(tx.Error, c)
 			return
 		}
-		c.JSON(200, map[string]interface{}{
-			"status": "success",
-		})
+		c.JSON(200, user)
 	})
 
 	route.GET("/homepage", func(c *gin.Context) {

@@ -62,6 +62,7 @@ func BlogRouteRegisterHandler(config APIRouteConfig) {
 			cuserr.GinErrorHandle(err, c)
 			return
 		}
+		data.Owner.IsAdmin = false
 		c.JSON(200, data)
 	})
 
