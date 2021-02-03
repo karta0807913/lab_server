@@ -73,7 +73,27 @@ func BlogRouteRegisterHandler(config APIRouteConfig) {
 		}
 
 		var result []model.BlogTag
-		db.Joins("BlogData").Preload("BlogData").Preload("BlogData.TagList.TagInfo").Preload("BlogData.Owner").Where("BlogData.Deleted=0 and tag_id in ?", tagList).Order("blog_id desc").Group("blog_id").Find(&result)
+		db.Select(
+			"blog_tags.id", "blog_id", "tag_id",
+		).Joins(
+			"inner join blog_data on blog_data.id = blog_id and deleted=0",
+		).Preload(
+			"BlogData",
+		).Preload(
+			"BlogData.TagList.TagInfo",
+		).Preload(
+			"BlogData.Owner",
+		).Where(
+			"tag_id in ?", tagList,
+		).Order(
+			"blog_id desc",
+		).Group(
+			"blog_tags.id",
+		).Group(
+			"blog_id",
+		).Group(
+			"tag_id",
+		).Find(&result)
 		c.JSON(200, result)
 	})
 
