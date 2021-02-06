@@ -1,7 +1,6 @@
 package model
 
-//go:generate generate_router -type "UserData" -method "First"
-//go:generate generate_router -type "UserData" -method "Find"
+//go:generate generate_router -type "UserData" -method "Find" -ignore "ID,Account"
 type UserData struct {
 	// gorm.Model
 	ID       uint   `gorm:"primaryKey" json:"user_id"`

@@ -12,8 +12,6 @@ import (
 // search options will put into struct
 func (item *UserData) Find(c *gin.Context, db *gorm.DB) ([]UserData, error) {
 	type Body struct {
-		ID      *uint   `form:"user_id"`
-		Account *string `form:"-"`
 	}
 	var body Body
 	var err error
@@ -21,18 +19,6 @@ func (item *UserData) Find(c *gin.Context, db *gorm.DB) ([]UserData, error) {
 
 	whereField := make([]string, 0)
 	valueField := make([]interface{}, 0)
-
-	if body.ID != nil {
-		whereField = append(whereField, "user_data.id=?")
-		valueField = append(valueField, body.ID)
-		item.ID = *body.ID
-	}
-
-	if body.Account != nil {
-		whereField = append(whereField, "user_data.account=?")
-		valueField = append(valueField, body.Account)
-		item.Account = *body.Account
-	}
 
 	var limit int = 20
 	slimit, ok := c.GetQuery("limit")

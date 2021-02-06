@@ -26,6 +26,12 @@ var CreateUserData Document = Document{
         },{
             Required: true,
             Comment: "",
+            Name: "IsAdmin",
+            Alias: "is_admin",
+            Type: "bool",
+        },{
+            Required: true,
+            Comment: "",
             Name: "Status",
             Alias: "-",
             Type: "uint",
