@@ -64,10 +64,10 @@ github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/u
 github.com/json-iterator/go v1.1.10 h1:Kz6Cvnvv2wGdaG/V8yMvfkmNiXq9Ya2KUv4rouJJr68=
 github.com/json-iterator/go v1.1.10/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/karta0807913/go_server_utils v0.1.3 h1:q9XXQW0BZR/JNQl44TPvBmDDhw6PY7hI39MqFqTY/5Y=
-github.com/karta0807913/go_server_utils/serverutil v0.0.0-20210118023054-d323aebe5719 h1:dXFvi8tGBuVGS9E3e76VLqvJXGl7+hiKKCwSqLO6oR4=
-github.com/karta0807913/go_server_utils/serverutil v0.0.0-20210118023054-d323aebe5719/go.mod h1:SCj2Tqlex//4XhYwMgQgfonvFaQwPiQIX/yJEapJa2k=
-github.com/karta0807913/go_server_utils/tools/generate_router v0.0.0-20210117082959-a216abb1c953 h1:7mnbccEb3ImyAfnTDBnYKy9zfneN9wbm4NQjFY3Ak3g=
-github.com/karta0807913/go_server_utils/tools/generate_router v0.0.0-20210117082959-a216abb1c953/go.mod h1:Wm4rjInKjI1kkE9QoNTuBfLYGgwt2mCAkWeTYpaVKKk=
+github.com/karta0807913/go_server_utils/serverutil v0.0.0-20210302074859-e8f0acaa2d67 h1:bcbtMIiYYRctFihs2a+v/j26hUw7Bk9WsQ1eGlDxTVU=
+github.com/karta0807913/go_server_utils/serverutil v0.0.0-20210302074859-e8f0acaa2d67/go.mod h1:Pj4hJpnwFcD65VIuy5R6DjN272x3rhRsFot3oQ8wvEs=
+github.com/karta0807913/go_server_utils/tools/generate_router v0.0.0-20210302074859-e8f0acaa2d67 h1:YMG1esuUDaLizAso3N0Q3wQKFh7j98XrqmRcELGfg7c=
+github.com/karta0807913/go_server_utils/tools/generate_router v0.0.0-20210302074859-e8f0acaa2d67/go.mod h1:Wm4rjInKjI1kkE9QoNTuBfLYGgwt2mCAkWeTYpaVKKk=
 github.com/karta0807913/lab_server v0.0.0-20200826085344-cae348809661/go.mod h1:3bQyPpDGLeHlypt0XP2iRXhBM51Wlhf4/gNySm8hpXg=
 github.com/leodido/go-urn v1.2.0 h1:hpXL4XnriNwQ/ABnpepYM/1vCLWNDfUNts8dX3xTG6Y=
 github.com/leodido/go-urn v1.2.0/go.mod h1:+8+nEpDfqqsY+g338gtMEUOtuK+4dEMhiQEgxpxOKII=
@@ -133,6 +133,7 @@ golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sys v0.0.0-20180830151530-49385e6e1522/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200116001909-b77594299b42 h1:vEOn+mP2zCOVzKckCZy6YsCtDblrpj/w7B9nxGNELpg=
 golang.org/x/sys v0.0.0-20200116001909-b77594299b42/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd h1:xhmwyvizuTgC2qz7ZlMluP20uW+C3Rm0FD/WLDX8884=
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
