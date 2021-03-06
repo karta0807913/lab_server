@@ -57,7 +57,7 @@ func BlogRouteRegisterHandler(config APIRouteConfig) {
 
 	route.GET("/get", func(c *gin.Context) {
 		var data model.BlogData
-		err := data.First(c, db.Preload("FileList").Preload("TagList.TagInfo").Preload("Owner").Select("ID", "Title", "OwnerID", "Context", "CreatedAt", "UpdatedAt"))
+		err := data.First(c, db.Preload("FileList", "deleted=0").Preload("TagList.TagInfo").Preload("Owner").Select("ID", "Title", "OwnerID", "Context", "CreatedAt", "UpdatedAt"))
 		if err != nil {
 			cuserr.GinErrorHandle(err, c)
 			return

@@ -37,7 +37,7 @@ func Route(config RouteConfig) {
 	config.Server.Use(func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "http://127.0.0.1:3000")
 		c.Header("Access-Control-Allow-Credentials", "true")
-		c.Header("Access-Control-Allow-Headers", "content-type")
+		c.Header("Access-Control-Allow-Headers", "content-type,x-requested-with")
 		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)

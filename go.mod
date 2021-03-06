@@ -7,6 +7,7 @@ require (
 	github.com/karta0807913/go_server_utils/serverutil v0.0.0-20210302074859-e8f0acaa2d67
 	github.com/karta0807913/go_server_utils/tools/generate_router v0.0.0-20210302074859-e8f0acaa2d67 // indirect
 	github.com/pascaldekloe/jwt v1.10.0
+	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f // indirect
 	gorm.io/driver/mysql v0.3.1
 	gorm.io/driver/sqlite v1.1.4
 	gorm.io/gorm v1.20.7

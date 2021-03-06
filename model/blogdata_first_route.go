@@ -12,6 +12,8 @@ import (
 func (item *BlogData) First(c *gin.Context, db *gorm.DB) error {
 	type Body struct {
 		ID uint `form:"blog_id" binding:"required"`
+
+		Deleted *uint `form:"deleted"`
 	}
 
 	var body Body
@@ -28,6 +30,12 @@ func (item *BlogData) First(c *gin.Context, db *gorm.DB) error {
 	}
 
 	item.ID = body.ID
+
+	if body.Deleted != nil {
+		whereField = append(whereField, "blog_data.deleted=?")
+		valueField = append(valueField, body.Deleted)
+		item.Deleted = *body.Deleted
+	}
 
 	err = db.Where(
 		strings.Join(whereField, " and "),

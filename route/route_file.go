@@ -36,8 +36,8 @@ func FileRouteRegisterHandler(config FileRouteConfig) {
 
 	route.POST("/upload", func(c *gin.Context) {
 		type UploadParameter struct {
-			Filename string `json:"filename"`
-			TagID    *uint  `json:"tag_id"`
+			FileName *string `json:"filename"`
+			BlogID   *uint   `json:"blog_id"`
 		}
 
 		reader, err := c.Request.MultipartReader()
@@ -65,9 +65,33 @@ func FileRouteRegisterHandler(config FileRouteConfig) {
 			cuserr.GinErrorHandle(err, c)
 			return
 		}
-		if param.TagID == nil {
+
+		if param.FileName == nil {
 			cuserr.GinErrorHandle(cuserr.UserInputError{
-				ErrMsg: "Tag id missing",
+				ErrMsg: "File name missing",
+			}, c)
+			return
+		}
+
+		if param.BlogID == nil {
+			cuserr.GinErrorHandle(cuserr.UserInputError{
+				ErrMsg: "Blog id missing",
+			}, c)
+			return
+		}
+
+		var blogData model.BlogData
+		err = db.Where("id=?", param.BlogID).First(&blogData).Error
+		if err != nil {
+			cuserr.GinErrorHandle(err, c)
+			return
+		}
+
+		session := c.MustGet("session").(serverutil.Session)
+		if uint(session.Get("mem_id").(float64)) != blogData.OwnerID &&
+			!session.Get("is_admin").(bool) {
+			cuserr.GinErrorHandle(cuserr.UserInputError{
+				ErrMsg: "permission denied",
 			}, c)
 			return
 		}
@@ -106,12 +130,13 @@ func FileRouteRegisterHandler(config FileRouteConfig) {
 		}
 
 		fileData := model.FileData{
-			Filename:    param.Filename,
+			FileName:    *param.FileName,
+			BlogID:      *param.BlogID,
 			FileHash:    fileHash,
 			UserID:      uint(c.MustGet("session").(serverutil.Session).Get("mem_id").(float64)),
 			ContextType: part.Header.Values("Content-Type")[0],
 		}
-		tx := db.Select("file_name", "file_hash", "user_id").Create(&fileData)
+		tx := db.Select("file_name", "file_hash", "user_id", "blog_id", "context_type").Create(&fileData)
 		if tx.Error != nil {
 			cuserr.GinErrorHandle(tx.Error, c)
 			return
@@ -123,25 +148,38 @@ func FileRouteRegisterHandler(config FileRouteConfig) {
 		})
 	})
 
-	route.GET("/list", func(c *gin.Context) {
-		var fileList []model.FileData
-		id, ok := c.GetQuery("id")
-		var tx *gorm.DB
-		if ok {
-			tx = db.Select([]string{
-				"id", "filename", "context_type", "user_id",
-			}).Where("deleted = 0 and id = ?", id).Where(&fileList)
-		} else {
-			tx = db.Select([]string{
-				"id", "filename", "context_type", "user_id",
-			}).Where("deleted = 0").Find(&fileList)
+	route.DELETE("/file", func(c *gin.Context) {
+		type Body struct {
+			ID uint `json:"id"`
 		}
-		if tx.Error != nil {
-			cuserr.GinErrorHandle(tx.Error, c)
+		var body Body
+		err := c.ShouldBindJSON(&body)
+		if err != nil {
+			cuserr.GinErrorHandle(err, c)
 			return
 		}
-
-		c.JSON(200, fileList)
+		var fileData model.FileData
+		err = db.Select("deleted", "user_id").Where("id=?", body.ID).First(&fileData).Error
+		if err != nil {
+			cuserr.GinErrorHandle(err, c)
+			return
+		}
+		session := c.MustGet("session").(serverutil.Session)
+		if fileData.UserID != uint(session.Get("mem_id").(float64)) &&
+			!session.Get("is_admin").(bool) {
+			cuserr.GinErrorHandle(cuserr.UserInputError{
+				ErrMsg: "permission denied",
+			}, c)
+			return
+		}
+		err = db.Model(new(model.FileData)).Where("id", body.ID).Update("deleted", "1").Error
+		if err != nil {
+			cuserr.GinErrorHandle(err, c)
+			return
+		}
+		c.JSON(200, gin.H{
+			"msg": "ok",
+		})
 	})
 
 	route.GET("/download", func(c *gin.Context) {
@@ -153,7 +191,7 @@ func FileRouteRegisterHandler(config FileRouteConfig) {
 			}, c)
 			return
 		}
-		tx := db.Select("Filename", "FileHash").Where("deleted = 0 and id = ?", id).First(&fileInfo)
+		tx := db.Select("file_name", "FileHash").Where("deleted = 0 and id = ?", id).First(&fileInfo)
 		if tx.Error != nil {
 			cuserr.GinErrorHandle(tx.Error, c)
 			return
@@ -167,7 +205,7 @@ func FileRouteRegisterHandler(config FileRouteConfig) {
 			return
 		}
 		c.Header("Content-Type", fileInfo.ContextType)
-		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileInfo.Filename))
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileInfo.FileName))
 		c.File(filePath)
 	})
 }

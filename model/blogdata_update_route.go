@@ -74,7 +74,7 @@ func (insert *BlogData) Update(c *gin.Context, db *gorm.DB) error {
 		insert.CreatedAt = *body.CreatedAt
 	}
 
-	if len(selectField) == (0 + 1 + 1) {
+	if len(selectField) < (0 + 1 + 1) {
 		return errors.New("require at least one option")
 	}
 

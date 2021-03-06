@@ -9,6 +9,7 @@ type UserData struct {
 	Password string `gorm:"not null" json:"-"`
 	IsAdmin  bool   `gorm:"default:false" json:"is_admin"`
 	Status   uint   `gorm:"default:0;not null" json:"-"`
+	Note     string `gorm:"type:TEXT" json:"note"`
 	// 0: not active, 1: active, 2: deleted, not activated, 3 deleted and activated
 	//   MSB        LSB
 	// deleted   activated

@@ -30,8 +30,8 @@ func (item *TagInfo) First(c *gin.Context, db *gorm.DB) error {
 		item.ID = *body.ID
 	}
 
-	if len(valueField) == 0 {
-		return errors.New("require at least one option")
+	if len(valueField) < (0 + 0 + 1) {
+		return errors.New("require option")
 	}
 
 	err = db.Where(

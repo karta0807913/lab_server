@@ -25,7 +25,7 @@ func AdminRouteRegisterHandler(config APIRouteConfig) {
 	route.Use(AdminCheck)
 
 	route.POST("/tag", func(c *gin.Context) {
-		var tag model.BlogTag
+		var tag model.TagInfo
 		err := tag.Create(c, db)
 		if err != nil {
 			cuserr.GinErrorHandle(err, c)
@@ -56,7 +56,7 @@ func AdminRouteRegisterHandler(config APIRouteConfig) {
 			cuserr.GinErrorHandle(err, c)
 			return
 		}
-		db.Where("TagID=?", body.ID).Delete(new(model.BlogTag))
+		db.Where("tag_id=?", body.ID).Delete(new(model.BlogTag))
 		db.Where("ID=?", body.ID).Delete(new(model.TagInfo))
 		c.JSON(200, gin.H{
 			"message": "ok",
@@ -65,7 +65,7 @@ func AdminRouteRegisterHandler(config APIRouteConfig) {
 
 	route.GET("/user", func(c *gin.Context) {
 		var user model.UserData
-		result, _ := user.Find(c, db.Select("ID, Nickname, Account, is_admin, Status"))
+		result, _ := user.Find(c, db.Select("ID, Nickname, Account, is_admin, Status, note"))
 		c.JSON(200, result)
 	})
 
@@ -121,6 +121,7 @@ func AdminRouteRegisterHandler(config APIRouteConfig) {
 			Password *string `json:"password"`
 			IsAdmin  *bool   `json:"is_admin"`
 			Status   *uint   `json:"status"`
+			Note     *string `json:"note"`
 		}
 		var body Body
 		err := c.ShouldBindJSON(&body)
@@ -157,7 +158,12 @@ func AdminRouteRegisterHandler(config APIRouteConfig) {
 			insert.Status = *body.Status
 		}
 
-		if len(selectField) == (0 + 0 + 1) {
+		if body.Note != nil {
+			selectField = append(selectField, "note")
+			insert.Note = *body.Note
+		}
+
+		if len(selectField) < (0 + 0 + 1) {
 			c.JSON(403, gin.H{
 				"message": "require at least one option",
 			})
@@ -173,6 +179,27 @@ func AdminRouteRegisterHandler(config APIRouteConfig) {
 		}
 		c.JSON(200, gin.H{
 			"message": "ok",
+		})
+	})
+
+	route.GET("/files", func(c *gin.Context) {
+		var data model.FileData
+		var count int64
+		result, err := data.Find(c, db.Preload("UserData"))
+		if err != nil {
+			cuserr.GinErrorHandle(err, c)
+			return
+		}
+
+		err = db.Model(&data).Count(&count).Error
+		if err != nil {
+			cuserr.GinErrorHandle(err, c)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"total":  count,
+			"result": result,
 		})
 	})
 }

@@ -103,11 +103,12 @@ func GinErrorHandle(err error, c *gin.Context) {
 			c.AbortWithStatusJSON(403, gin.H{
 				"message": "http body required",
 			})
+		} else {
+			c.AbortWithStatusJSON(500, gin.H{
+				"message": "unknow error",
+			})
+			log.Println(err.Error())
 		}
-		c.AbortWithStatusJSON(500, gin.H{
-			"message": "unknow error",
-		})
-		log.Println(err.Error())
 	case *PleasLoginError,
 		*AccountOrPasswordError,
 		*AccountUsed,
