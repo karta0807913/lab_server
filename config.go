@@ -13,6 +13,7 @@ type ConfigType struct {
 	privateKeyPath   string
 	googleAuthFile   string
 	uploadPath       string
+	calendarID       string
 }
 
 type mysqlConfig struct {
@@ -57,12 +58,13 @@ func getSQLConfig() sqlConfig {
 	return sql
 }
 
-var Config ConfigType = ConfigType{
+var WebsiteConfig ConfigType = ConfigType{
 	googleFileParent: "1376hSupEtrCgFDNmstrdK3oSDPOw5IGu",
 	sql:              getSQLConfig(),
 	publicKeyPath:    "./public.pem",
 	privateKeyPath:   "./private.pem",
 	serverAddr:       ":1200",
-	googleAuthFile:   "./e539-lab-web-dd38239bcca2.json",
+	googleAuthFile:   "./e539-lab-web-9227fbd1854a.json",
 	uploadPath:       "./files",
+	calendarID:       "pp4f60hjm0llrf1pslqeoavho8@group.calendar.google.com",
 }

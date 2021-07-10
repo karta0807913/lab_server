@@ -113,7 +113,8 @@ func GinErrorHandle(err error, c *gin.Context) {
 		*AccountOrPasswordError,
 		*AccountUsed,
 		*IsNotJsonError,
-		*UserInputError:
+		*UserInputError,
+		*gin.Error:
 		c.AbortWithStatusJSON(403, gin.H{
 			"message": err.Error(),
 		})
