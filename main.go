@@ -182,8 +182,8 @@ func main() {
 			log.Println("calendar", ID, "updated")
 		}
 		// update calendar every 48 hours
-		timer := time.NewTimer(48 * time.Hour)
 		for {
+			timer := time.NewTimer(48 * time.Hour)
 			select {
 			case <-timer.C:
 				ID, err := InitGoogleCalendar(WebsiteConfig.calendarID)
