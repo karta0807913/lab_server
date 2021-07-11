@@ -12,7 +12,7 @@ ENV REACT_APP_HOST_URL ${BackendURL}
 
 RUN npm run build
 
-FROM golang:1.15.0 as server
+FROM golang:1.15 as server
 WORKDIR /server
 COPY [ "go.mod", "go.sum", "./" ]
 RUN go mod download
@@ -21,7 +21,8 @@ RUN go run tools/gen_rsa_key.go && go build -o app
 
 FROM ubuntu:20.04
 WORKDIR /app
-RUN mkdir -p files/temp
+RUN mkdir -p files/temp && apt-get update && apt-get install -y ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 COPY --from=client /client/build build
 COPY --from=server [ "/server/app", "/server/public.pem", "/server/private.pem", "./" ]
 
