@@ -68,6 +68,9 @@ func InitGoogleCalendar(calendarID string) (string, error) {
 		targetCalendar, err = svc.Calendars.Insert(&calendar.Calendar{
 			Summary: "科技部計畫時程",
 		}).Do()
+		if err != nil {
+			return "", err
+		}
 	}
 	_, err = svc.Acl.Insert(targetCalendar.Id, &calendar.AclRule{
 		Role: "reader",
